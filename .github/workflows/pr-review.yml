@@ -26,6 +26,9 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Necessário: o Gemini CLI recusa rodar por padrão em diretório não confiado
+          # e não há prompt interativo disponível num runner do Actions (AST-36). Não remover.
+          GEMINI_CLI_TRUST_WORKSPACE: true
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           gemini_model: gemini-2.5-pro
