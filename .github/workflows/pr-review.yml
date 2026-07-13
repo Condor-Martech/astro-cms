@@ -1,0 +1,44 @@
+name: PR Review (Gemini CLI)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [staging, main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # ponytail: esqueleto (AST-35). Requer o secret GEMINI_API_KEY no repo — sem ele
+    # o job falha e não bloqueia merge (branch protection cobre só o job de CI).
+    # Trocado de anthropics/claude-code-action (AST-7) porque o usuário não tem
+    # ANTHROPIC_API_KEY (billing por uso) -- só assinatura local. Gemini API key já disponível.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: google-github-actions/run-gemini-cli@v0
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Necessário: o Gemini CLI recusa rodar por padrão em diretório não confiado
+          # e não há prompt interativo disponível num runner do Actions (AST-36). Não remover.
+          GEMINI_CLI_TRUST_WORKSPACE: true
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: gemini-2.5-pro
+          prompt: |
+            Revise o diff do PR #${{ github.event.pull_request.number }} do repositório
+            ${{ github.repository }} contra as convenções em CLAUDE.md e, quando presente
+            no repositório, os cenários Gherkin de 02-spec.md §5. Use `gh pr diff` e
+            `gh pr view` (o `GITHUB_TOKEN` já está disponível no ambiente) para obter o
+            diff e a descrição do PR. Aponte problemas de correção, segurança e
+            performance, sempre citando o número da linha. Verifique a cobertura de teste
+            dos cenários Gherkin correspondentes e o disclosure de uso de IA no corpo do
+            PR. Poste os achados como um único comentário com
+            `gh pr comment ${{ github.event.pull_request.number }} --body "..."`.
